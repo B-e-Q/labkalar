@@ -29,6 +29,8 @@ while True:
             pg.quit()
             exit()
     
+
+    
     curtime = dt.datetime.now()
     minuts = curtime.minute
     seconds = curtime.second
@@ -40,11 +42,6 @@ while True:
     
     rotate(screen, sec_hand, seconds)
     rotate(screen, min_hand, minuts)
-
-    # print(bg.get_rect(center = (400, 300)).center)
-
-    
-    
 
     pg.display.update()
     clock.tick(60)
