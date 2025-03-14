@@ -14,8 +14,8 @@ bg = pg.image.load("img/clock.png")
 min_hand = pg.image.load("img/min_hand.png")
 sec_hand = pg.image.load("img/sec_hand.png")
 
-def rotate(surf, img, times):
-    rot_img = pg.transform.rotate(img, -(times % 60) * 6)
+def rotate(surf, img, times, angle):
+    rot_img = pg.transform.rotate(img, -(times % 60) * 6 + angle)
     new_img = rot_img.get_rect(center = img.get_rect(center = (400, 300)).center)
     print(new_img)
     surf.blit(rot_img, new_img)
@@ -40,8 +40,8 @@ while True:
 
     screen.blit(bg, (0,0))
     
-    rotate(screen, sec_hand, seconds)
-    rotate(screen, min_hand, minuts)
+    rotate(screen, sec_hand, seconds, 60)
+    rotate(screen, min_hand, minuts, -45)
 
     pg.display.update()
     clock.tick(60)
