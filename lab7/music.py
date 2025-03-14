@@ -1,5 +1,4 @@
 import pygame as pg
-import datetime as dt
 import time
 from sys import exit
 
