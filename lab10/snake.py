@@ -1,5 +1,18 @@
 import pygame as pg
 import random
+import psycopg2 as psg
+
+conn = psg.connect(host="localhost", dbname="snake", user="postgres", password="Aa12340987.", port=5432)
+
+cur = conn.cursor()
+
+# Create Table
+cur.execute(""" CREATE TABLE IF NOT EXISTS snake(
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(50) NOT NULL,
+            score INT NOT NULL
+);
+""")
 
 pg.init()
 
@@ -24,6 +37,7 @@ FPS = 10
 # Fonts
 font = pg.font.Font('fonts/MICKEY.TTF',30)
 int_font = pg.font.Font('fonts/MICKEY.TTF',30)
+user_name = ''
 
 
 # Draw cells for Snake field
@@ -50,16 +64,16 @@ class Snake:
         self.score = 0
         self.level = 1
 
-    def move(self):
 
+    def isdead(self):
         # Is Snake Dead?
         for i in self.body:
             if self.head.x not in range(0, W) or self.head.y not in range(0, H):
                 self.dead = True
             if self.head.x == i.x and self.head.y == i.y:
                 self.dead = True
-        
 
+    def restart(self):
         # Restart snake's position and size
         if self.dead:
             self.score = 0
@@ -71,6 +85,9 @@ class Snake:
             self.body = [pg.Rect(self.x - BS, self.y, BS, BS)]
             self.dead = False
 
+
+
+    def move(self):
         # Movement of snake
         self.body.append(self.head)
         for i in range(len(self.body)-1):
@@ -104,40 +121,87 @@ class Apple:
 
 snake = Snake()
 apple = Apple()
+score = 0
+
+def start_menu():
+    pg.draw.rect(screen, (21, 27, 35), (0, 0, W, H))
 
 # Snake's head's angles
 sides = [0, 25, 0, 25]
+show_menu = 1
 
 run = True
 while run:
+    
+    #is dead
+    snake.isdead()
     for event in pg.event.get():
         if event.type == pg.QUIT:
             run = False
         if event.type == pg.KEYDOWN:
-            if event.key == pg.K_a:
-                snake.xdir = -1
-                snake.ydir = 0
-                sides = [25, 0, 25, 0]
-            elif event.key == pg.K_s:
-                snake.xdir = 0
-                snake.ydir = 1
-                sides = [0, 0, 25, 25]
-            elif event.key == pg.K_d:
-                snake.xdir = 1
-                snake.ydir = 0
-                sides = [0, 25, 0, 25]
-            elif event.key == pg.K_w:
-                snake.xdir = 0
-                snake.ydir = -1
-                sides = [25, 25, 0, 0]
+            if not show_menu:
+                if event.key == pg.K_a:
+                    snake.xdir = -1
+                    snake.ydir = 0
+                    sides = [25, 0, 25, 0]
+                elif event.key == pg.K_s:
+                    snake.xdir = 0
+                    snake.ydir = 1
+                    sides = [0, 0, 25, 25]
+                elif event.key == pg.K_d:
+                    snake.xdir = 1
+                    snake.ydir = 0
+                    sides = [0, 25, 0, 25]
+                elif event.key == pg.K_w:
+                    snake.xdir = 0
+                    snake.ydir = -1
+                    sides = [25, 25, 0, 0]
+            else:
+                if event.key == pg.K_BACKSPACE:
+                    user_name = user_name[:-1]
+                else:
+                    user_name += event.unicode
+                if len(user_name) > 0 and event.key == pg.K_RETURN:
+                    show_menu = 0
+            if snake.dead and event.key == pg.K_r:
+                show_menu = 1
+                cur.execute(
+                    "INSERT INTO snake (name, score) VALUES (%s, %s)",
+                    (user_name, snake.score)
+                )
+                snake.restart()
+                
     
     # Fill Display with color
     screen.fill((13, 17, 23))
+
+    if show_menu:
+        start_menu()
+        text_surface = font.render(user_name, True, (255, 255, 255))
+        name_surface = font.render("Enter you name:", True, (255, 255, 255))
+        screen.blit(text_surface, (250, 350))
+        screen.blit(name_surface, (250, 300))
+        pg.display.update()
+        clock.tick(FPS + snake.level - 1)
+        continue
+
+    if snake.dead:
+        sides = [0, 25, 0, 25]
+        pg.draw.rect(screen, (21, 27, 35), (0, 0, W, H))
+        you_dead = font.render("You Dead! (press R to restart)", True, 'red')
+        your_score = font.render(f"Your score: {snake.score}", True, 'red')
+        screen.blit(you_dead, (150, 300))
+        screen.blit(your_score, (230, 330))
+        pg.display.update()
+        clock.tick(FPS + snake.level - 1)
+        continue
+
+    
     
 
     # Generate apple and place on display
     apple.draw(screen)
-
+    
     # Move snake 
     snake.move()
 
@@ -165,8 +229,14 @@ while run:
 
     # Write level and score on display 
     drawtext(snake.score, snake.level)
-    
+
     pg.display.update()
     clock.tick(FPS + snake.level - 1)
+    
+
+conn.commit()
+
+cur.close()
+conn.close()
 pg.quit()
 exit()

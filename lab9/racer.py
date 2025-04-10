@@ -5,11 +5,14 @@ import random
 pg.init()
 pg.mixer.init()
 
+
+# Play background music
 pg.mixer.music.load('sounds/background.wav')
 pg.mixer.music.set_volume(0.1)
 pg.mixer.music.play(-1)
 
 
+# Width and Height of the display
 W = 400
 H = 600
 
@@ -46,6 +49,9 @@ def drawtext(score):
     score_text = font.render(f"Score: {score}", True, "WHITE")
     screen.blit(score_text, (10, 10))
 
+
+
+# Player 
 class Player(pg.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -55,18 +61,23 @@ class Player(pg.sprite.Sprite):
         self.rect.bottom = H
         self.speed = 5
 
+    # Move Left or Right
     def move(self):
         key = pg.key.get_pressed()
         
+        # Pressed keys action
         if key[pg.K_d]:
             self.rect.move_ip(self.speed, 0)
         if key[pg.K_a]:
             self.rect.move_ip(-self.speed, 0)
+        
+        # Object outside of the display
         if self.rect.left < 0:
             self.rect.left = 0
         if self.rect.right > W:
             self.rect.right = W
 
+# Enemy
 class Enemy(pg.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -74,10 +85,12 @@ class Enemy(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.speed = 10
     
+    # Generates Enemy 
     def gen_rect(self):
         self.rect.left = random.randint(0, W - self.rect.w)
         self.rect.bottom = 0
     
+    # Move To The Bottom
     def move(self):
         self.rect.move_ip(0, self.speed)
         if self.rect.top > H:
@@ -103,7 +116,7 @@ class Coin(pg.sprite.Sprite):
         self.i = random.randint(0, 2)
         self.img = coin_img[self.i]
     
-
+    # Move To The Bottom
     def move(self):
         self.rect.move_ip(0, self.speed)
         if self.rect.top > H:
@@ -120,6 +133,7 @@ class Coin(pg.sprite.Sprite):
             self.speed = 10
 
 
+# Get every class
 player = Player()
 enemy = Enemy()
 coin = Coin()
@@ -144,6 +158,8 @@ while run:
     # Infinity Moving Back Ground
     screen.blit(bg_img, (0, bgy))
     screen.blit(bg_img, (0, bgy - H))
+
+    # Make infinity Moving Background from Top to Bottom
     bgy += 5
     if bgy == H:
         bgy = 0
@@ -154,11 +170,13 @@ while run:
         entity.move()
         screen.blit(entity.image, entity.rect)
     
-
+    # Activat coins actions
     coin.move()
 
+    # Write text on display
     drawtext(coin.score)
-
+    
+    # Screen if car is crushed
     if pg.sprite.spritecollideany(player, enemy_sprites):
         sound_crash.play()
         time.sleep(1)
