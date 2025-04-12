@@ -12,6 +12,7 @@ cur = conn.cursor()
 cur.execute(""" CREATE TABLE IF NOT EXISTS phonebook (
             id SERIAL PRIMARY KEY,
             first_name VARCHAR(50) NOT NULL,
+            surname VARCHAR(50) NOT NULL,
             phone VARCHAR(15) NOT NULL
 );
 """)
@@ -21,8 +22,8 @@ first_name = input("first name: ")
 phone = input("phone: ")
 
 cur.execute(
-    "INSERT INTO phonebook (first_name, phone) VALUES (%s, %s)",
-    (first_name, phone)
+    "INSERT INTO phonebook (first_name, surname, phone) VALUES (%s, %s, %s)",
+    (first_name,"a", phone)
 )
 
 
@@ -32,8 +33,8 @@ with open('txt.csv', 'r') as csv_file:
 
     for line in csv_reader:
         cur.execute(
-            "INSERT INTO phonebook (first_name, phone) VALUES (%s, %s)",
-            (line[0], line[1])
+            "INSERT INTO phonebook (first_name, surname, phone) VALUES (%s, %s, %s)",
+            (line[0], "a" , line[1])
         )
 
 # Update Data
