@@ -163,12 +163,18 @@ while run:
                     user_name += event.unicode
                 if len(user_name) > 0 and event.key == pg.K_RETURN:
                     show_menu = 0
+                    user_name = user_name[:-1]
             if snake.dead and event.key == pg.K_r:
                 show_menu = 1
-                cur.execute(
-                    "INSERT INTO snake (name, score) VALUES (%s, %s)",
-                    (user_name, snake.score)
-                )
+                cur.execute("SELECT 1 FROM snake WHERE name = %s", (user_name,))
+                exists = cur.fetchone()
+                
+                if exists:
+                    cur.execute("UPDATE snake SET score = %s WHERE name = %s", (snake.score, user_name))
+                else:
+                    cur.execute("INSERT INTO snake (name, score) VALUES (%s, %s)", (user_name, snake.score))
+                
+                
                 snake.restart()
                 
     
