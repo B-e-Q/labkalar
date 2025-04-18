@@ -9,12 +9,54 @@ cur = conn.cursor()
 # Create Table
 cur.execute(""" CREATE TABLE IF NOT EXISTS snake(
             id SERIAL PRIMARY KEY,
-            name VARCHAR(50) NOT NULL,
-            score INT NOT NULL
+            name VARCHAR(50) NOT NULL
+);
+""")
+
+cur.execute(""" CREATE TABLE IF NOT EXISTS snake_level(
+            id SERIAL PRIMARY KEY,
+            score INT NOT NULL,
+            level INT NOT NULL,
+            speed INT NOT NULL,
+            name VARCHAR(50) NOT NULL
 );
 """)
 
 pg.init()
+
+def get_name(name):
+    cur.execute("SELECT id FROM snake WHERE name=%s", (name,))
+    exists = cur.fetchone()
+
+    if exists:
+        return exists[0]
+    else:
+        cur.execute("INSERT INTO snake (name) VALUES (%s) RETURNING id", (name,))
+        conn.commit()
+        return cur.fetchone()[0]
+
+def get_level(id):
+    cur.execute("SELECT level FROM snake_level WHERE id=%s LIMIT 1", (id,))
+    row = cur.fetchone()
+    return row[0] if row else 0
+
+def get_score(id):
+    cur.execute("SELECT score FROM snake_level WHERE id=%s LIMIT 1", (id,))
+    row = cur.fetchone()
+    return row[0] if row else 0
+
+def get_speed(id):
+    cur.execute("SELECT speed FROM snake_level WHERE id=%s LIMIT 1", (id,))
+    row = cur.fetchone()
+    return row[0] if row and row[0] is not None else 5
+
+def save_all(score, level, speed, name):
+    cur.execute("INSERT INTO snake_level (score, level, speed, name) VALUES (%s, %s, %s, %s)", (score, level, speed, name))
+    conn.commit()
+def update_all(score, level, speed, name, id):
+    cur.execute("UPDATE snake_level SET score = %s, level = %s, speed = %s, name = %s WHERE id = %s", (score, level, speed, name, id))
+    conn.commit()
+
 
 # Height and Width of Display
 W = 800
@@ -89,12 +131,13 @@ class Snake:
 
     def move(self):
         # Movement of snake
-        self.body.append(self.head)
-        for i in range(len(self.body)-1):
-            self.body[i].x, self.body[i].y = self.body[i+1].x, self.body[i+1].y
-        self.head.x += self.xdir * BS
-        self.head.y += self.ydir * BS
-        self.body.remove(self.head)
+        if not (self.xdir == 0 and self.ydir == 0):
+            self.body.append(self.head)
+            for i in range(len(self.body)-1):
+                self.body[i].x, self.body[i].y = self.body[i+1].x, self.body[i+1].y
+            self.head.x += self.xdir * BS
+            self.head.y += self.ydir * BS
+            self.body.remove(self.head)
     
 
     
@@ -130,6 +173,7 @@ def start_menu():
 sides = [0, 25, 0, 25]
 show_menu = 1
 
+pouse = False
 run = True
 while run:
     
@@ -139,7 +183,14 @@ while run:
         if event.type == pg.QUIT:
             run = False
         if event.type == pg.KEYDOWN:
-            if not show_menu:
+            if event.key == pg.K_SPACE:
+                if pouse:
+                    pouse = False
+                else:
+                    snake.xdir = 0
+                    snake.ydir = 0
+                    pouse = True
+            if not show_menu and not pouse:
                 if event.key == pg.K_a:
                     snake.xdir = -1
                     snake.ydir = 0
@@ -164,22 +215,30 @@ while run:
                 if len(user_name) > 0 and event.key == pg.K_RETURN:
                     show_menu = 0
                     user_name = user_name[:-1]
+                    user_id = get_name(user_name)
+                    snake.score = get_score(user_id)
+                    snake.level = get_level(user_id)
+                    
             if snake.dead and event.key == pg.K_r:
                 show_menu = 1
-                cur.execute("SELECT 1 FROM snake WHERE name = %s", (user_name,))
+                cur.execute("SELECT id FROM snake WHERE name = %s", (user_name,))
                 exists = cur.fetchone()
-                
-                if exists:
-                    cur.execute("UPDATE snake SET score = %s WHERE name = %s", (snake.score, user_name))
-                else:
-                    cur.execute("INSERT INTO snake (name, score) VALUES (%s, %s)", (user_name, snake.score))
-                
+                cur.execute("SELECT id FROM snake_level WHERE name = %s", (user_name,))
+                row = cur.fetchone()
+
+                if not exists:
+                    cur.execute("INSERT INTO snake (name) VALUES (%s)", (user_name))
+                if not row:
+                    save_all(snake.score, snake.level, FPS + snake.level - 1, user_name)
+                elif exists[0] == row[0]:
+                    update_all(snake.score, snake.level, FPS + snake.level - 1, user_name, row[0])
                 
                 snake.restart()
                 
     
     # Fill Display with color
     screen.fill((13, 17, 23))
+    
 
     if show_menu:
         start_menu()
@@ -202,13 +261,10 @@ while run:
         clock.tick(FPS + snake.level - 1)
         continue
 
-    
-    
-
     # Generate apple and place on display
     apple.draw(screen)
     
-    # Move snake 
+    # Move snake
     snake.move()
 
     # Draw snake's postion
