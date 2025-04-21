@@ -48,7 +48,7 @@ def get_score(id):
 def get_speed(id):
     cur.execute("SELECT speed FROM snake_level WHERE id=%s LIMIT 1", (id,))
     row = cur.fetchone()
-    return row[0] if row and row[0] is not None else 5
+    return row[0] if row else 5
 
 def save_all(score, level, speed, name):
     cur.execute("INSERT INTO snake_level (score, level, speed, name) VALUES (%s, %s, %s, %s)", (score, level, speed, name))
@@ -176,7 +176,6 @@ show_menu = 1
 pouse = False
 run = True
 while run:
-    
     #is dead
     snake.isdead()
     for event in pg.event.get():
